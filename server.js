@@ -15,7 +15,7 @@ app.get("/", (req, res) => {
   res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Endpoint Scraper API All-in-One
+// Endpoint Scraper API
 app.post("/api/download", async (req, res) => {
   const { url } = req.body;
 
@@ -26,58 +26,49 @@ app.post("/api/download", async (req, res) => {
   try {
     let result;
 
+    // Cetak ke Log Vercel untuk cek semua fungsi yang tersedia di library
+    console.log("Struktur Scrapr:", Object.keys(scrapr));
+
     // 1. TIKTOK
     if (url.includes("tiktok.com")) {
-      const fn = scrapr.tiktok?.snaptik || scrapr.tiktok?.ssstik || scrapr.tiktok?.v1;
-      if (typeof fn === "function") result = await fn(url);
-      else throw new Error("Scraper TikTok tidak dapat diproses");
+      if (typeof scrapr.tiktok === "function") {
+        result = await scrapr.tiktok(url);
+      } else if (scrapr.tiktok && typeof scrapr.tiktok.snaptik === "function") {
+        result = await scrapr.tiktok.snaptik(url);
+      } else if (typeof scrapr.snaptik === "function") {
+        result = await scrapr.snaptik(url);
+      } else {
+        throw new Error("Modul TikTok tidak ditemukan di library.");
+      }
     } 
     
     // 2. INSTAGRAM
     else if (url.includes("instagram.com")) {
-      const ig = scrapr.instagram || {};
-      const fn = ig.v1 || ig.v2 || ig.v3 || ig.download || ig.igdl;
-      if (typeof fn === "function") {
-        result = await fn(url);
-      } else if (typeof ig === "function") {
-        result = await ig(url);
+      // Cek semua kemungkinan lokasi fungsi instagram
+      if (typeof scrapr.instagram === "function") {
+        result = await scrapr.instagram(url);
+      } else if (scrapr.instagram && typeof scrapr.instagram.v1 === "function") {
+        result = await scrapr.instagram.v1(url);
+      } else if (typeof scrapr.igdl === "function") {
+        result = await scrapr.igdl(url);
       } else {
-        throw new Error("Scraper Instagram tidak dapat diproses");
+        // Jika tetap gagal, tampilkan semua nama fungsi yang tersedia di library
+        const available = Object.keys(scrapr).join(", ");
+        throw new Error(`Fungsi Instagram tidak cocok. Fungsi tersedia di library: [ ${available} ]`);
       }
     } 
-    
+
     // 3. YOUTUBE
     else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      const yt = scrapr.youtube || {};
-      const fn = yt.ytmp4 || yt.v1 || yt.download;
-      if (typeof fn === "function") result = await fn(url);
-      else throw new Error("Scraper YouTube tidak dapat diproses");
-    } 
-    
-    // 4. FACEBOOK
-    else if (url.includes("facebook.com") || url.includes("fb.watch")) {
-      const fb = scrapr.facebook || {};
-      const fn = fb.fdown || fb.v1 || fb.download;
-      if (typeof fn === "function") result = await fn(url);
-      else throw new Error("Scraper Facebook tidak dapat diproses");
-    } 
-    
-    // 5. TWITTER / X
-    else if (url.includes("twitter.com") || url.includes("x.com")) {
-      const tw = scrapr.twitter || {};
-      const fn = tw.v1 || tw.v2 || tw.download;
-      if (typeof fn === "function") result = await fn(url);
-      else throw new Error("Scraper Twitter/X tidak dapat diproses");
-    } 
-    
-    // 6. SPOTIFY
-    else if (url.includes("spotify.com")) {
-      const sp = scrapr.spotify || {};
-      const fn = sp.download || sp.v1;
-      if (typeof fn === "function") result = await fn(url);
-      else throw new Error("Scraper Spotify tidak dapat diproses");
-    } 
-    
+      if (typeof scrapr.youtube === "function") {
+        result = await scrapr.youtube(url);
+      } else if (scrapr.youtube && typeof scrapr.youtube.ytmp4 === "function") {
+        result = await scrapr.youtube.ytmp4(url);
+      } else {
+        throw new Error("Modul YouTube tidak ditemukan di library.");
+      }
+    }
+
     else {
       return res.status(400).json({ error: "Platform belum didukung!" });
     }
