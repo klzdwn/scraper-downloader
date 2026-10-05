@@ -1,19 +1,22 @@
 const express = require("express");
 const cors = require("cors");
+const path = require("path");
 const { tiktok, instagram } = require("@coflyn/scrapr");
 
 const app = express();
 
-// Mengizinkan CORS agar frontend Vercel/Netlify bisa akses API ini
 app.use(cors());
 app.use(express.json());
 
-// Health check endpoint untuk Render
+// Sajikan file HTML & statis dari folder yang sama
+app.use(express.static(path.join(__dirname)));
+
+// Endpoint Halaman Utama (Website)
 app.get("/", (req, res) => {
-  res.send("API Scrapr jalan!");
+  res.sendFile(path.join(__dirname, "index.html"));
 });
 
-// Endpoint Scraper
+// Endpoint Scraper API
 app.post("/api/download", async (req, res) => {
   const { url } = req.body;
 
@@ -37,8 +40,5 @@ app.post("/api/download", async (req, res) => {
   }
 });
 
-// Gunakan PORT dari environment variable Render
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
