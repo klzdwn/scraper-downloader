@@ -26,56 +26,53 @@ app.post("/api/download", async (req, res) => {
   try {
     let result;
 
-    // Cetak ke Log Vercel untuk cek semua fungsi yang tersedia di library
-    console.log("Struktur Scrapr:", Object.keys(scrapr));
-
-    // 1. TIKTOK
-    if (url.includes("tiktok.com")) {
-      if (typeof scrapr.tiktok === "function") {
-        result = await scrapr.tiktok(url);
-      } else if (scrapr.tiktok && typeof scrapr.tiktok.snaptik === "function") {
-        result = await scrapr.tiktok.snaptik(url);
-      } else if (typeof scrapr.snaptik === "function") {
-        result = await scrapr.snaptik(url);
-      } else {
-        throw new Error("Modul TikTok tidak ditemukan di library.");
-      }
+    // 1. INSTAGRAM
+    if (url.includes("instagram.com")) {
+      result = await scrapr.instagram(url);
     } 
-    
-    // 2. INSTAGRAM
-    else if (url.includes("instagram.com")) {
-      // Cek semua kemungkinan lokasi fungsi instagram
-      if (typeof scrapr.instagram === "function") {
-        result = await scrapr.instagram(url);
-      } else if (scrapr.instagram && typeof scrapr.instagram.v1 === "function") {
-        result = await scrapr.instagram.v1(url);
-      } else if (typeof scrapr.igdl === "function") {
-        result = await scrapr.igdl(url);
-      } else {
-        // Jika tetap gagal, tampilkan semua nama fungsi yang tersedia di library
-        const available = Object.keys(scrapr).join(", ");
-        throw new Error(`Fungsi Instagram tidak cocok. Fungsi tersedia di library: [ ${available} ]`);
-      }
+    // 2. TIKTOK
+    else if (url.includes("tiktok.com")) {
+      result = await scrapr.tiktok(url);
     } 
-
     // 3. YOUTUBE
     else if (url.includes("youtube.com") || url.includes("youtu.be")) {
-      if (typeof scrapr.youtube === "function") {
-        result = await scrapr.youtube(url);
-      } else if (scrapr.youtube && typeof scrapr.youtube.ytmp4 === "function") {
-        result = await scrapr.youtube.ytmp4(url);
-      } else {
-        throw new Error("Modul YouTube tidak ditemukan di library.");
-      }
-    }
-
+      result = await scrapr.youtube(url);
+    } 
+    // 4. FACEBOOK
+    else if (url.includes("facebook.com") || url.includes("fb.watch")) {
+      result = await scrapr.facebook(url);
+    } 
+    // 5. TWITTER / X
+    else if (url.includes("twitter.com") || url.includes("x.com")) {
+      result = await scrapr.twitter(url);
+    } 
+    // 6. SPOTIFY
+    else if (url.includes("spotify.com")) {
+      result = await scrapr.spotify(url);
+    } 
+    // 7. THREADS
+    else if (url.includes("threads.net")) {
+      result = await scrapr.threads(url);
+    } 
+    // 8. PINTEREST
+    else if (url.includes("pinterest.com") || url.includes("pin.it")) {
+      result = await scrapr.pinterest(url);
+    } 
+    // 9. SOUNDCLOUD
+    else if (url.includes("soundcloud.com")) {
+      result = await scrapr.soundcloud(url);
+    } 
+    // 10. TERABOX
+    else if (url.includes("terabox.com") || url.includes("neobox.app")) {
+      result = await scrapr.terabox(url);
+    } 
     else {
       return res.status(400).json({ error: "Platform belum didukung!" });
     }
 
     return res.json({ success: true, data: result });
   } catch (err) {
-    return res.status(500).json({ error: err.message || "Gagal mengekstrak media" });
+    return res.status(500).json({ error: err.message || "Gagal mengambil data dari platform" });
   }
 });
 
