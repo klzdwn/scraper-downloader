@@ -12,16 +12,22 @@
     p.subtitle { font-size: 13px; color: #94a3b8; margin-bottom: 20px; }
     input { width: 100%; padding: 14px; border-radius: 10px; border: 1px solid #334155; background: #0f172a; color: #fff; margin-bottom: 12px; outline: none; font-size: 14px; }
     input:focus { border-color: #38bdf8; }
-    button { width: 100%; padding: 14px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 15px; }
-    button:hover { background: #0369a1; }
+    button#btnSubmit { width: 100%; padding: 14px; background: #0284c7; color: white; border: none; border-radius: 10px; font-weight: 600; cursor: pointer; transition: background 0.2s; font-size: 15px; }
+    button#btnSubmit:hover { background: #0369a1; }
+    button#btnSubmit:disabled { background: #334155; cursor: not-allowed; }
     
     /* Result Box Styling */
     #result { margin-top: 20px; display: none; background: #0f172a; border-radius: 12px; border: 1px solid #334155; padding: 16px; text-align: center; }
-    .thumb-img { width: 100%; max-height: 250px; object-fit: cover; border-radius: 8px; margin-bottom: 12px; }
-    .media-title { font-size: 14px; font-weight: 600; margin-bottom: 14px; color: #e2e8f0; line-height: 1.4; word-break: break-word; }
+    .media-title { font-size: 15px; font-weight: 600; margin-bottom: 16px; color: #e2e8f0; line-height: 1.4; word-break: break-word; }
     
-    .btn-download { display: inline-block; width: 100%; padding: 12px; background: #22c55e; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; margin-top: 6px; }
+    .media-item { margin-bottom: 20px; padding-bottom: 16px; border-bottom: 1px solid #1e293b; }
+    .media-item:last-child { border-bottom: none; margin-bottom: 0; padding-bottom: 0; }
+    
+    .media-preview { width: 100%; max-height: 380px; border-radius: 10px; margin-bottom: 12px; background: #000; object-fit: contain; }
+    
+    .btn-download { display: flex; align-items: center; justify-content: center; gap: 8px; width: 100%; padding: 12px; background: #22c55e; color: white; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; transition: background 0.2s; }
     .btn-download:hover { background: #16a34a; }
+    
     .error-msg { color: #f87171; font-size: 14px; }
     .loading-msg { color: #38bdf8; font-size: 14px; font-style: italic; }
   </style>
@@ -64,30 +70,65 @@
 
         if (json.success) {
           const data = json.data;
-
-          // Ambil thumbnail & link download dari berbagai struktur response
-          const thumbnail = data.thumbnail || data.cover || (data.url && data.url[0]) || '';
-          const title = data.title || data.caption || 'Media Download';
+          const title = data.title || data.caption || 'Instagram / Media Download';
           
-          // Cari URL video/media
-          let downloadUrl = '';
-          if (typeof data.url === 'string') downloadUrl = data.url;
-          else if (Array.isArray(data.url) && data.url.length > 0) downloadUrl = typeof data.url[0] === 'string' ? data.url[0] : data.url[0].url;
-          else if (data.video) downloadUrl = Array.isArray(data.video) ? data.video[0] : data.video;
-          else if (data.nowm) downloadUrl = data.nowm;
+          let items = [];
 
-          let html = '';
-          if (thumbnail) {
-            html += `<img src="${thumbnail}" class="thumb-img" alt="Thumbnail">`;
-          }
-          html += `<div class="media-title">${title}</div>`;
+          // 1. Ekstrak dari array 'downloads' jika ada
+          if (Array.isArray(data.downloads) && data.downloads.length > 0) {
+            items = data.downloads.map(item => ({
+              type: item.type || (item.url && item.url.includes('.mp4') ? 'video' : 'image'),
+              url: item.url,
+              thumbnail: item.thumbnail
+            }));
+          } 
+          // 2. Fallback jika strukturnya langsung url/video/nowm
+          else {
+            let mediaUrl = data.url || data.video || data.nowm;
+            if (Array.isArray(mediaUrl)) mediaUrl = mediaUrl[0];
+            if (typeof mediaUrl === 'object' && mediaUrl.url) mediaUrl = mediaUrl.url;
 
-          if (downloadUrl) {
-            html += `<a href="${downloadUrl}" target="_blank" rel="noopener" class="btn-download"> Klik Untuk Unduh Media 🚀</a>`;
-          } else {
-            // Jika struktur JSON unik, berikan tombol lihat JSON
-            html += `<pre style="text-align:left; font-size:11px; color:#a7f3d0; overflow-x:auto;">${JSON.stringify(data, null, 2)}</pre>`;
+            if (mediaUrl) {
+              items.push({
+                type: (typeof mediaUrl === 'string' && mediaUrl.includes('.mp4')) ? 'video' : 'video',
+                url: mediaUrl,
+                thumbnail: data.thumbnail || data.cover || ''
+              });
+            }
           }
+
+          if (items.length === 0) {
+            resultDiv.innerHTML = `<span class="error-msg">Media tidak ditemukan dalam link ini.</span>`;
+            return;
+          }
+
+          let html = `<div class="media-title">${title}</div>`;
+
+          items.forEach((item, index) => {
+            html += `<div class="media-item">`;
+            
+            // Render Player Video atau Image
+            if (item.type === 'video') {
+              html += `
+                <video class="media-preview" controls poster="${item.thumbnail || ''}">
+                  <source src="${item.url}" type="video/mp4">
+                  Browser Anda tidak mendukung pemutar video.
+                </video>
+                <a href="${item.url}" target="_blank" download rel="noopener" class="btn-download">
+                  📥 Download Video ${items.length > 1 ? `#${index + 1}` : ''}
+                </a>
+              `;
+            } else {
+              html += `
+                <img src="${item.url || item.thumbnail}" class="media-preview" alt="Preview Image">
+                <a href="${item.url || item.thumbnail}" target="_blank" download rel="noopener" class="btn-download">
+                  📥 Download Gambar ${items.length > 1 ? `#${index + 1}` : ''}
+                </a>
+              `;
+            }
+
+            html += `</div>`;
+          });
 
           resultDiv.innerHTML = html;
         } else {
